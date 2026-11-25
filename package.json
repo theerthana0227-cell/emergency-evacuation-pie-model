@@ -1,0 +1,23 @@
+{
+  "name": "emergency-evacuation-pie-model",
+  "version": "2.0.0",
+  "description": "Interactive 3D Emergency Evacuation Simulation & Real-World Pedestrian Dataset Validation using Principle of Inclusion-Exclusion (PIE) and Hick's Law",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "evacuation",
+    "threejs",
+    "discrete-mathematics",
+    "inclusion-exclusion",
+    "hicks-law",
+    "pedestrian-dynamics",
+    "juelich-dataset",
+    "hermes-bottleneck"
+  ],
+  "author": "Ameya (B.Tech CSE - AI-Driven DevOps)",
+  "license": "MIT"
+}

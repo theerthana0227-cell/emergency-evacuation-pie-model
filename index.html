@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emergency Evacuation Planning System — 3D Simulation & Real Data Validation</title>
+  <meta name="description" content="Interactive 3D emergency evacuation simulation and real-world pedestrian dataset validation using the Principle of Inclusion-Exclusion (PIE) and Hick's Law cognitive ergonomics." />
+
+  <!-- Google Fonts: Outfit, Inter, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles/main.css" />
+  <link rel="stylesheet" href="styles/dashboard.css" />
+  <link rel="stylesheet" href="styles/components.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="logo-badge">⚡</div>
+        <div class="brand-text">
+          <h1>
+            Emergency Evacuation Planning System
+            <span class="math-badge">3D & PIE Math Model</span>
+          </h1>
+          <div class="brand-subtitle">
+            <span>Experiential Learning Model • JAIN (Deemed-to-be University)</span>
+            <span>•</span>
+            <span style="color: #38bdf8;">Ameya (B.Tech CSE - AI-Driven DevOps)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div id="system-status-indicator" class="status-indicator">
+          <span class="pulse-dot"></span>
+          <span id="system-status-text">SYSTEM ACTIVE • MONITORING</span>
+        </div>
+
+        <button class="btn btn-secondary btn-sm" id="btn-open-viva">
+          🎓 Viva Pitch & Q&A
+        </button>
+
+        <button class="btn btn-secondary btn-sm" id="btn-reset-header">
+          🔄 Reset
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="app-tabs-bar">
+      <button class="tab-btn active" id="tab-btn-building">
+        🏢 Building Evacuation Simulator (3D & 2D)
+      </button>
+      <button class="tab-btn" id="tab-btn-realdata">
+        🔬 Real Data Validation (Forschungszentrum Jülich)
+      </button>
+    </nav>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 1: BUILDING EVACUATION SIMULATOR (3D & 2D) -->
+    <!-- ========================================================================= -->
+    <main class="dashboard-main" id="tab-content-building">
+      <!-- LEFT COLUMN: CONTROLS & SCENARIOS -->
+      <aside class="dashboard-column">
+        <!-- Scenario Presets -->
+        <div class="panel-card">
+          <div class="card-header">
+            <h2 class="card-title"><span class="icon">🎯</span> Evaluator Scenarios</h2>
+            <span class="badge-tag badge-purple">1-Click Demos</span>
+          </div>
+          <div id="scenario-presets-container"></div>
+        </div>
+
+        <!-- Optimality Threshold Slider -->
+        <div class="panel-card">
+          <div class="card-header">
+            <h2 class="card-title"><span class="icon">⚖️</span> Route Decision Rule</h2>
+            <span class="badge-tag badge-cyan">Hick's Law</span>
+          </div>
+          <div id="threshold-slider-container"></div>
+        </div>
+
+        <!-- Manual Hazard Trigger & Occupancy Sliders -->
+        <div class="panel-card">
+          <div class="card-header">
+            <h2 class="card-title"><span class="icon">🛠️</span> Simulation Controls</h2>
+            <span class="badge-tag">Operator Panel</span>
+          </div>
+          <div id="hazard-trigger-container"></div>
+          <div id="zone-editor-container"></div>
+        </div>
+      </aside>
+
+      <!-- CENTER COLUMN: HERO FLOOR PLAN & 3D BUILDING VIEW -->
+      <section class="dashboard-column">
+        <!-- Visualization Card -->
+        <div class="panel-card floor-plan-card" style="padding-bottom: 14px;">
+          <div class="card-header" style="margin-bottom: 10px;">
+            <h2 class="card-title">
+              <span class="icon">🏢</span> Level 2 Architectural Facility (AI Tech Wing)
+            </h2>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <!-- 2D / 3D Toggle -->
+              <div class="toolbar-group">
+                <button class="btn-tool" id="btn-toggle-2d">📐 2D Floor Plan</button>
+                <button class="btn-tool active" id="btn-toggle-3d">🌐 Realistic 3D</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3D Controls Toolbar -->
+          <div id="controls-bar-3d" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
+            <div class="toolbar-group">
+              <span style="font-size: 11px; color: var(--text-muted); margin-right: 4px;">Camera:</span>
+              <button class="btn-tool active" id="btn-cam-perspective">Perspective</button>
+              <button class="btn-tool" id="btn-cam-iso">Isometric</button>
+              <button class="btn-tool" id="btn-cam-top">Top View</button>
+            </div>
+
+            <div class="toolbar-group">
+              <button class="btn-tool" id="btn-toggle-transp">👁️ Transparent Walls</button>
+              <button class="btn-tool" id="btn-toggle-roof">🏠 Roof</button>
+            </div>
+
+            <!-- Evacuation Playback Controls -->
+            <div class="toolbar-group">
+              <button class="btn-tool" id="btn-evac-start" style="color: #34d399; font-weight: 700;">▶ Evacuate</button>
+              <button class="btn-tool" id="btn-evac-pause">⏸ Pause</button>
+              <button class="btn-tool" id="btn-evac-resume">⏵ Resume</button>
+              <button class="btn-tool" id="btn-evac-reset">🔄 Reset</button>
+              <select class="btn-tool" id="select-evac-speed" style="padding: 4px 6px;">
+                <option value="0.5">0.5x</option>
+                <option value="1.0" selected>1.0x</option>
+                <option value="2.0">2.0x</option>
+                <option value="4.0">4.0x</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 3D Viewport -->
+          <div class="viewport-3d-wrapper" id="building-3d-wrapper">
+            <div id="building-3d-container" style="width: 100%; height: 100%;"></div>
+
+            <!-- Real-Time Evacuation HUD -->
+            <div class="evac-hud" id="building-evac-hud">
+              <div class="hud-stat">
+                <span class="hud-label">Evacuated</span>
+                <span class="hud-val" id="hud-evacuated-count">0</span>
+              </div>
+              <div class="hud-stat">
+                <span class="hud-label">Remaining In Facility</span>
+                <span class="hud-val" id="hud-remaining-count" style="color: #facc15;">0</span>
+              </div>
+              <div class="hud-stat">
+                <span class="hud-label">Elapsed Time</span>
+                <span class="hud-val" id="hud-elapsed-time" style="color: #38bdf8;">0.0s</span>
+              </div>
+              <div class="hud-stat">
+                <span class="hud-label">Status</span>
+                <span class="hud-val" id="hud-evac-status" style="font-size: 11px; color: #a78bfa;">IDLE</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2D Viewport (Hidden when 3D is active) -->
+          <div class="floor-plan-viewport" id="floor-plan-container" style="display: none;">
+            <!-- Rendered by FloorPlanView.js -->
+          </div>
+
+          <!-- Floor Plan Legend -->
+          <div class="floor-plan-toolbar" style="margin-top: 10px;">
+            <div class="legend-items">
+              <div class="legend-item">
+                <span class="legend-swatch swatch-hazard"></span>
+                <span>Hazard Zone</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-swatch swatch-ux"></span>
+                <span>UX-First Route (Recommended)</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-swatch swatch-optimal"></span>
+                <span>Optimal Route (Shortest)</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-swatch swatch-overlap"></span>
+                <span>PIE Overlap Region</span>
+              </div>
+            </div>
+            <div style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">
+              Rooms: Lab A • Hall B • Corridor C • Class D • Audit E
+            </div>
+          </div>
+        </div>
+
+        <!-- Exit Load Telemetry -->
+        <div id="exit-meter-container"></div>
+      </section>
+
+      <!-- RIGHT COLUMN: PIE MATHEMATICS & ROUTE DECISION -->
+      <aside class="dashboard-column">
+        <!-- Inclusion-Exclusion Explainer -->
+        <div id="pie-comparison-container"></div>
+
+        <!-- Evacuation Route Recommendations -->
+        <div id="route-panel-container"></div>
+
+        <!-- Audit Activity Log -->
+        <div id="activity-log-container"></div>
+      </aside>
+    </main>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 2: REAL DATA VALIDATION (FORSCHUNGSZENTRUM JÜLICH ARCHIVE) -->
+    <!-- ========================================================================= -->
+    <main class="dashboard-main" id="tab-content-realdata" style="display: none;">
+      <!-- LEFT COLUMN: DATASET LOADER & RECORDING PARAMETERS -->
+      <aside class="dashboard-column">
+        <!-- Dataset Selector & Uploader -->
+        <div class="panel-card">
+          <div class="card-header">
+            <h2 class="card-title"><span class="icon">📁</span> Empirical Dataset</h2>
+            <span class="badge-tag badge-purple">FZ Jülich</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">
+              Select Documented Experiment:
+            </label>
+            <select id="select-juelich-dataset" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-light); color: #fff; padding: 8px 10px; border-radius: var(--radius-sm); font-size: 12px; font-family: var(--font-mono);">
+              <option value="data/ao-240-400.txt">ao-240-400.txt (Width: 2.4m | ~352 Peds)</option>
+              <option value="data/ao-300-400.txt">ao-300-400.txt (Width: 3.0m | ~350 Peds)</option>
+            </select>
+
+            <div style="border-top: 1px dashed var(--border-subtle); margin: 6px 0;"></div>
+
+            <!-- Custom File Upload (CSV, TXT, ZIP) -->
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">
+              Or Upload Trajectory File:
+            </label>
+            <div style="position: relative;">
+              <input type="file" id="input-custom-dataset" accept=".txt,.csv,.zip" style="display: none;" />
+              <button class="btn btn-secondary btn-sm" id="btn-browse-dataset" style="width: 100%; justify-content: center;">
+                📂 Upload CSV / TXT / ZIP
+              </button>
+            </div>
+            <div style="font-size: 10px; color: var(--text-muted); line-height: 1.4;">
+              Supports standard Jülich format: <code>ID Frame X Y [Z]</code> (space/comma/tab separated, cm or m units).
+            </div>
+          </div>
+        </div>
+
+        <!-- Dataset Metadata Card -->
+        <div class="panel-card" id="real-metadata-card">
+          <div class="card-header">
+            <h2 class="card-title"><span class="icon">📋</span> Experiment Details</h2>
+            <span class="badge-tag badge-emerald">Verified Source</span>
+          </div>
+          <div id="real-metadata-content" style="font-size: 11px; line-height: 1.6; color: #cbd5e1;">
+            <div style="margin-bottom: 6px;"><strong>Experiment:</strong> Hermes Bottleneck (Düsseldorf 2009)</div>
+            <div style="margin-bottom: 6px;"><strong>DOI:</strong> <a href="https://doi.org/10.34735/ped.2009.6" target="_blank" style="color: #38bdf8;">10.34735/ped.2009.6</a></div>
+            <div style="margin-bottom: 6px;"><strong>Recording:</strong> 16 FPS (Bumblebee XB3 Stereo)</div>
+            <div style="margin-bottom: 6px;"><strong>Units:</strong> Centimeters (converted to meters)</div>
+            <div style="margin-bottom: 6px;"><strong>Geometry:</strong> Messe Düsseldorf Hall 2 ($b = 2.4\text{m}$)</div>
+            <div><strong>Unique Participants:</strong> <span id="meta-peds-count" style="color: #34d399; font-weight: 700;">352</span></div>
+          </div>
+        </div>
+
+        <!-- Playback & Frame Scrubber -->
+        <div class="panel-card">
+          <div class="card-header">
+            <h2 class="card-title"><span class="icon">⏱️</span> Playback & Timeline</h2>
+            <span class="badge-tag badge-cyan" id="playback-status-badge">Ready</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- Buttons -->
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-primary btn-sm" id="btn-real-play" style="flex: 1;">▶ Play</button>
+              <button class="btn btn-secondary btn-sm" id="btn-real-pause" style="flex: 1;">⏸ Pause</button>
+              <button class="btn btn-secondary btn-sm" id="btn-real-reset">🔄</button>
+              <select class="btn-tool" id="select-real-speed" style="padding: 4px 6px;">
+                <option value="0.5">0.5x</option>
+                <option value="1.0" selected>1.0x</option>
+                <option value="2.0">2.0x</option>
+                <option value="4.0">4.0x</option>
+              </select>
+            </div>
+
+            <!-- Scrubber Slider -->
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); margin-bottom: 4px;">
+                <span>Frame: <strong id="lbl-current-frame" style="color: #fff;">0</strong></span>
+                <span>Time: <strong id="lbl-current-time" style="color: #38bdf8;">0.0s</strong></span>
+                <span id="lbl-total-frames">/ 0</span>
+              </div>
+              <input type="range" id="real-timeline-slider" min="0" max="100" value="0" style="width: 100%; accent-color: #38bdf8; cursor: pointer;" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Export & Report Tools -->
+        <div class="panel-card">
+          <div class="card-header">
+            <h2 class="card-title"><span class="icon">📤</span> Export & Report</h2>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn-secondary btn-sm" id="btn-export-csv" style="width: 100%; justify-content: center;">
+              📊 Export Validation Data (CSV)
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btn-print-report" style="width: 100%; justify-content: center;">
+              🖨️ Generate Printable Report
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CENTER COLUMN: 3D RECONSTRUCTED EXPERIMENTAL AREA -->
+      <section class="dashboard-column">
+        <div class="panel-card" style="padding-bottom: 14px;">
+          <div class="card-header" style="margin-bottom: 10px;">
+            <h2 class="card-title">
+              <span class="icon">🌐</span> Reconstructed Bottleneck Experimental Area
+            </h2>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <div class="toolbar-group">
+                <span style="font-size: 11px; color: var(--text-muted); margin-right: 4px;">Camera:</span>
+                <button class="btn-tool active" id="btn-real-cam-persp">Perspective</button>
+                <button class="btn-tool" id="btn-real-cam-iso">Isometric</button>
+                <button class="btn-tool" id="btn-real-cam-top">Top View</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3D Viewport -->
+          <div class="viewport-3d-wrapper" style="height: 520px;">
+            <div id="real-data-3d-container" style="width: 100%; height: 100%;"></div>
+
+            <!-- In-canvas Experimental Info HUD -->
+            <div class="evac-hud">
+              <div class="hud-stat">
+                <span class="hud-label">In Semicircle Holding</span>
+                <span class="hud-val" id="hud-real-active" style="color: #38bdf8;">0</span>
+              </div>
+              <div class="hud-stat">
+                <span class="hud-label">Bottleneck Crossed</span>
+                <span class="hud-val" id="hud-real-crossed" style="color: #34d399;">0</span>
+              </div>
+              <div class="hud-stat">
+                <span class="hud-label">Observed Passage Velocity</span>
+                <span class="hud-val" id="hud-real-speed" style="color: #facc15;">0.00 m/s</span>
+              </div>
+              <div class="hud-stat">
+                <span class="hud-label">Empirical Setup</span>
+                <span class="hud-val" style="font-size: 11px; color: #a78bfa;">Hall 2 Messe</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Legend Bar -->
+          <div class="floor-plan-toolbar" style="margin-top: 10px;">
+            <div class="legend-items">
+              <div class="legend-item">
+                <span class="legend-swatch" style="background: #38bdf8;"></span>
+                <span>Sensor Zone 1 (West)</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-swatch" style="background: #a855f7;"></span>
+                <span>Sensor Zone 2 (Center Throat)</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-swatch" style="background: #10b981;"></span>
+                <span>Sensor Zone 3 (East)</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-swatch" style="background: #ef4444;"></span>
+                <span>Bottleneck Exit Line (y = 0)</span>
+              </div>
+            </div>
+            <div style="font-size: 10px; font-family: var(--font-mono); color: var(--text-muted);">
+              Geometry: 1:1 Scale Meters
+            </div>
+          </div>
+        </div>
+
+        <!-- Exit Flow & Density Analytics Graph -->
+        <div id="exit-flow-container"></div>
+      </section>
+
+      <!-- RIGHT COLUMN: EMPIRICAL PIE VALIDATION ENGINE -->
+      <aside class="dashboard-column">
+        <div id="real-pie-container"></div>
+      </aside>
+    </main>
+
+    <!-- Footer Status Bar -->
+    <footer class="footer-bar">
+      <div class="audit-stream">
+        <span class="audit-tag">ENGINE</span>
+        <span id="footer-log-text">PIE Mathematical Engine Initialized. Real-World Jülich Pedestrian Trajectories Ready.</span>
+      </div>
+      <div style="display: flex; gap: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">
+        <span>Model: <strong>PIE v2.0 (3D)</strong></span>
+        <span>Jülich DOI: <a href="https://doi.org/10.34735/ped.2009.6" target="_blank" style="color: #38bdf8;">10.34735/ped.2009.6</a></span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Viva & Examiner Pitch Modal -->
+  <div class="modal-overlay" id="viva-modal-overlay">
+    <div class="modal-content">
+      <button class="modal-close" id="btn-close-modal">&times;</button>
+      
+      <div style="margin-bottom: 20px;">
+        <span class="badge-tag badge-purple">Academic Viva & Presentation Reference</span>
+        <h2 style="font-family: var(--font-display); font-size: 22px; margin-top: 8px; color: #f8fafc;">
+          Emergency Evacuation Planning System
+        </h2>
+        <p style="color: var(--text-secondary); font-size: 13px;">
+          Student: <strong>Ameya</strong> | B.Tech CSE (AI-Driven DevOps) | JAIN (Deemed-to-be University)
+        </p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 18px; line-height: 1.6; font-size: 13px; color: #cbd5e1;">
+        <!-- 2 Minute Pitch -->
+        <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: var(--radius-md); padding: 14px;">
+          <h3 style="color: #a78bfa; font-size: 14px; margin-bottom: 6px; font-weight: 700;">
+            🎙️ 2-Minute Pitch for Examiners:
+          </h3>
+          <p>
+            "Traditional evacuation models make two major mistakes: first, they naively sum up room populations to estimate exit loads. When corridors and rooms share doorways and thresholds, this double-counts evacuees by 20% to 35%, causing emergency dispatchers to falsely assume an exit is clogged and divert panicking crowds down longer paths. We solve this mathematically using the <strong>Principle of Inclusion–Exclusion (PIE)</strong>.
+          </p>
+          <p style="margin-top: 6px;">
+            Second, theoretical algorithms search for mathematical shortest-paths regardless of human cognitive panic. Drawing on <strong>Hick's Law</strong>, our model prioritizes <strong>UX-First Routing</strong>—favoring straight lines of sight and minimal turns. We only override the simpler route if the theoretical shortcut is faster by more than a configurable threshold (e.g. 15%)."
+          </p>
+          <p style="margin-top: 6px; color: #38bdf8;">
+            Third, our system validates these discrete mathematical principles against real empirical research: publicly available pedestrian trajectory data from <strong>Forschungszentrum Jülich (DOI: 10.34735/ped.2009.6)</strong>, demonstrating 100% exact ground-truth overlap removal across overlapping sensor zones."
+          </p>
+        </div>
+
+        <!-- Top Viva Questions -->
+        <div>
+          <h3 style="color: #38bdf8; font-size: 14px; margin-bottom: 10px; font-weight: 700;">
+            ❓ Top Viva Questions & Answers
+          </h3>
+
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="background: rgba(0,0,0,0.25); padding: 10px; border-radius: var(--radius-sm);">
+              <strong style="color: #f8fafc;">Q1: What is the exact formula for PIE across 3 overlapping zones?</strong>
+              <div style="color: #94a3b8; font-family: var(--font-mono); font-size: 12px; margin-top: 4px;">
+                |A ∪ B ∪ C| = |A| + |B| + |C| − (|A ∩ B| + |A ∩ C| + |B ∩ C|) + |A ∩ B ∩ C|
+              </div>
+              <p style="color: var(--text-secondary); font-size: 12px; margin-top: 4px;">
+                The pairwise intersections remove double-counted individuals, while the 3-way intersection adds back people subtracted one too many times.
+              </p>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.25); padding: 10px; border-radius: var(--radius-sm);">
+              <strong style="color: #f8fafc;">Q2: Why does Hick's Law matter in an emergency?</strong>
+              <p style="color: var(--text-secondary); font-size: 12px; margin-top: 4px;">
+                Hick's Law states decision time increases logarithmically with the number of choices ($T = b \log_2(n + 1)$). In high-stress situations, every turn or branching hallway introduces hesitation, group splitting, and wrong turns. Real-world hesitation costs far more time than a few seconds saved by a complex theoretical shortcut.
+              </p>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.25); padding: 10px; border-radius: var(--radius-sm);">
+              <strong style="color: #f8fafc;">Q3: How is the real Jülich dataset used for PIE validation?</strong>
+              <p style="color: var(--text-secondary); font-size: 12px; margin-top: 4px;">
+                We define overlapping observation zones in the 3D experimental area. For each frame, actual tracked pedestrian IDs are tested for zone membership. The PIE formula calculates the union size, which is compared with distinct unique IDs from the raw trajectory records, achieving a 0-error mathematical match without any fabricated data.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vendor Libraries (Self-contained offline) -->
+  <script src="src/vendor/three.min.js"></script>
+  <script src="src/vendor/OrbitControls.js"></script>
+  <script src="src/vendor/chart.umd.min.js"></script>
+  <script src="src/vendor/jszip.min.js"></script>
+
+  <!-- Core API & Parser -->
+  <script src="src/api/apiClient.js"></script>
+  <script src="src/dataset/PedestrianDatasetParser.js"></script>
+
+  <!-- 3D & 2D Components -->
+  <script src="src/components/Building3DView.js"></script>
+  <script src="src/components/RealData3DView.js"></script>
+  <script src="src/components/RealDataPiePanel.js"></script>
+  <script src="src/components/ExitFlowAnalytics.js"></script>
+  <script src="src/components/FloorPlanView.js"></script>
+  <script src="src/components/OccupancyComparison.js"></script>
+  <script src="src/components/RoutePanel.js"></script>
+  <script src="src/components/ExitLoadMeter.js"></script>
+
+  <!-- Admin Controls -->
+  <script src="src/admin/ScenarioPresets.js"></script>
+  <script src="src/admin/ThresholdSlider.js"></script>
+  <script src="src/admin/HazardTrigger.js"></script>
+  <script src="src/admin/ZoneEditor.js"></script>
+  <script src="src/admin/ActivityLog.js"></script>
+
+  <!-- App Main Entry Point -->
+  <script src="src/app.js"></script>
+</body>
+</html>
