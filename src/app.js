@@ -609,14 +609,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
   }
-      realData3DView.seek(0);
-      const statusBadge = document.getElementById('playback-status-badge');
-      if (statusBadge) {
-        statusBadge.textContent = 'Ready';
-        statusBadge.className = 'badge-tag badge-cyan';
-      }
-    });
-  }
 
   if (selectRealSpeed) {
     selectRealSpeed.addEventListener('change', (e) => {
