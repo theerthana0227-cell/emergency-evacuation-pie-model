@@ -30,7 +30,7 @@
           <div class="brand-subtitle">
             <span>Experiential Learning Model • JAIN (Deemed-to-be University)</span>
             <span>•</span>
-            <span style="color: #38bdf8;">Ameya (B.Tech CSE - AI-Driven DevOps)</span>
+            <span style="color: #38bdf8;">B.Tech CSE (AI-Driven DevOps)</span>
           </div>
         </div>
       </div>
@@ -57,7 +57,10 @@
         🏢 Building Evacuation Simulator (3D & 2D)
       </button>
       <button class="tab-btn" id="tab-btn-realdata">
-        🔬 Real Data Validation (Forschungszentrum Jülich)
+        🔬 Real-World Data Validation (Forschungszentrum Jülich)
+      </button>
+      <button class="tab-btn" id="tab-btn-manual">
+        📝 Manual Data Input
       </button>
     </nav>
 
@@ -94,6 +97,20 @@
           <div id="hazard-trigger-container"></div>
           <div id="zone-editor-container"></div>
         </div>
+
+        <!-- Manual Data Input Quick Shortcut -->
+        <div class="panel-card" style="border-color: rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.06);">
+          <div class="card-header" style="margin-bottom: 8px;">
+            <h2 class="card-title"><span class="icon">📝</span> Custom Facility Data</h2>
+            <span class="badge-tag badge-purple">Editable</span>
+          </div>
+          <p style="font-size: 11px; color: var(--text-secondary); margin: 0 0 10px 0; line-height: 1.4;">
+            Modify room occupancies, configure dynamic sensor overlaps, adjust exit widths & walking speeds.
+          </p>
+          <button class="btn btn-primary btn-sm" id="btn-quick-manual-entry" style="width: 100%; justify-content: center; font-weight: 700;">
+            📝 Enter Manual Data
+          </button>
+        </div>
       </aside>
 
       <!-- CENTER COLUMN: HERO FLOOR PLAN & 3D BUILDING VIEW -->
@@ -129,7 +146,7 @@
 
             <!-- Evacuation Playback Controls -->
             <div class="toolbar-group">
-              <button class="btn-tool" id="btn-evac-start" style="color: #34d399; font-weight: 700;">▶ Evacuate</button>
+              <button class="btn-tool" id="btn-evac-start" style="color: #34d399; font-weight: 700;">▶ Run Simulation</button>
               <button class="btn-tool" id="btn-evac-pause">⏸ Pause</button>
               <button class="btn-tool" id="btn-evac-resume">⏵ Resume</button>
               <button class="btn-tool" id="btn-evac-reset">🔄 Reset</button>
@@ -221,37 +238,61 @@
     <main class="dashboard-main" id="tab-content-realdata" style="display: none;">
       <!-- LEFT COLUMN: DATASET LOADER & RECORDING PARAMETERS -->
       <aside class="dashboard-column">
-        <!-- Dataset Selector & Uploader -->
+        <!-- Three Data Input Options Panel -->
         <div class="panel-card">
           <div class="card-header">
-            <h2 class="card-title"><span class="icon">📁</span> Empirical Dataset</h2>
-            <span class="badge-tag badge-purple">FZ Jülich</span>
+            <h2 class="card-title"><span class="icon">📁</span> Data Input Options</h2>
+            <span class="badge-tag badge-purple">3 Modes</span>
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 10px;">
-            <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">
-              Select Documented Experiment:
-            </label>
-            <select id="select-juelich-dataset" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-light); color: #fff; padding: 8px 10px; border-radius: var(--radius-sm); font-size: 12px; font-family: var(--font-mono);">
-              <option value="data/ao-240-400.txt">ao-240-400.txt (Width: 2.4m | ~352 Peds)</option>
-              <option value="data/ao-300-400.txt">ao-300-400.txt (Width: 3.0m | ~350 Peds)</option>
-            </select>
-
-            <div style="border-top: 1px dashed var(--border-subtle); margin: 6px 0;"></div>
-
-            <!-- Custom File Upload (CSV, TXT, ZIP) -->
-            <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">
-              Or Upload Trajectory File:
-            </label>
-            <div style="position: relative;">
-              <input type="file" id="input-custom-dataset" accept=".txt,.csv,.zip" style="display: none;" />
-              <button class="btn btn-secondary btn-sm" id="btn-browse-dataset" style="width: 100%; justify-content: center;">
-                📂 Upload CSV / TXT / ZIP
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- Option 1: Manual Data Entry -->
+            <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-subtle); padding: 10px; border-radius: var(--radius-sm);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="font-size: 11px; font-weight: 700; color: #a78bfa;">Option 1: Manual Data</span>
+                <span class="badge-tag" style="font-size: 9px; padding: 1px 4px;">Interactive</span>
+              </div>
+              <p style="font-size: 10px; color: var(--text-muted); margin: 0 0 6px 0;">
+                Direct numerical entry for rooms, sensor zones, overlaps, and exit capacities.
+              </p>
+              <button class="btn btn-secondary btn-sm" id="btn-tab2-manual-entry" style="width: 100%; justify-content: center; font-size: 11px;">
+                📝 Enter Manual Data
               </button>
             </div>
-            <div style="font-size: 10px; color: var(--text-muted); line-height: 1.4;">
-              Supports standard Jülich format: <code>ID Frame X Y [Z]</code> (space/comma/tab separated, cm or m units).
+
+            <!-- Option 2: Upload Real-World Dataset -->
+            <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-subtle); padding: 10px; border-radius: var(--radius-sm);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="font-size: 11px; font-weight: 700; color: #38bdf8;">Option 2: Upload Real-World Dataset</span>
+                <span class="badge-tag" style="font-size: 9px; padding: 1px 4px;">CSV / TXT / JSON / ZIP</span>
+              </div>
+              <p style="font-size: 10px; color: var(--text-muted); margin: 0 0 6px 0;">
+                Upload trajectory dataset with column mapping & variable preservation.
+              </p>
+              <input type="file" id="input-custom-dataset" accept=".txt,.csv,.json,.zip" style="display: none;" />
+              <button class="btn btn-secondary btn-sm" id="btn-browse-dataset" style="width: 100%; justify-content: center; font-size: 11px;">
+                📂 Upload Dataset
+              </button>
             </div>
+
+            <!-- Option 3: Load Original Research Dataset -->
+            <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-subtle); padding: 10px; border-radius: var(--radius-sm);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="font-size: 11px; font-weight: 700; color: #34d399;">Option 3: Load Original Dataset</span>
+                <span class="badge-tag badge-emerald" style="font-size: 9px; padding: 1px 4px;">FZ Jülich Genuine</span>
+              </div>
+              <p style="font-size: 10px; color: var(--text-muted); margin: 0 0 6px 0;">
+                Pre-bundled genuine research data (DOI: 10.34735/ped.2009.6) ready to test without downloading.
+              </p>
+              <select id="select-juelich-dataset" style="width: 100%; background: #0f172a; border: 1px solid var(--border-light); color: #fff; padding: 6px 8px; border-radius: var(--radius-sm); font-size: 11px; font-family: var(--font-mono); margin-bottom: 6px;">
+                <option value="data/ao-240-400.txt">ao-240-400.txt (Width: 2.4m | 352 Peds)</option>
+                <option value="data/ao-300-400.txt">ao-300-400.txt (Width: 3.0m | 348 Peds)</option>
+              </select>
+              <button class="btn btn-primary btn-sm" id="btn-load-original-dataset" style="width: 100%; justify-content: center; font-size: 11px; font-weight: 700;">
+                ⚡ Load Original Dataset
+              </button>
+            </div>
+
           </div>
         </div>
 
@@ -280,10 +321,12 @@
 
           <div style="display: flex; flex-direction: column; gap: 12px;">
             <!-- Buttons -->
-            <div style="display: flex; gap: 8px;">
-              <button class="btn btn-primary btn-sm" id="btn-real-play" style="flex: 1;">▶ Play</button>
-              <button class="btn btn-secondary btn-sm" id="btn-real-pause" style="flex: 1;">⏸ Pause</button>
-              <button class="btn btn-secondary btn-sm" id="btn-real-reset">🔄</button>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button class="btn btn-primary btn-sm" id="btn-real-play" style="flex: 1; min-width: 90px;">▶ Play Recorded Data</button>
+              <button class="btn btn-secondary btn-sm" id="btn-real-pause">⏸ Pause</button>
+              <button class="btn btn-secondary btn-sm" id="btn-real-resume">⏵ Resume</button>
+              <button class="btn btn-secondary btn-sm" id="btn-real-reset">🔄 Reset</button>
+              <button class="btn btn-secondary btn-sm" id="btn-open-schema-mapping" title="Inspect Schema & Preview Table">📋 Preview</button>
               <select class="btn-tool" id="select-real-speed" style="padding: 4px 6px;">
                 <option value="0.5">0.5x</option>
                 <option value="1.0" selected>1.0x</option>
@@ -311,6 +354,13 @@
           </div>
           <div style="display: flex; flex-direction: column; gap: 8px;">
             <button class="btn btn-secondary btn-sm" id="btn-export-csv" style="width: 100%; justify-content: center;">
+              📊 Export Results (CSV)
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btn-print-report" style="width: 100%; justify-content: center;">
+              🖨️ Printable Report
+            </button>
+          </div>
+        </div>
               📊 Export Validation Data (CSV)
             </button>
             <button class="btn btn-secondary btn-sm" id="btn-print-report" style="width: 100%; justify-content: center;">
@@ -398,6 +448,16 @@
       </aside>
     </main>
 
+    <!-- ========================================================================= -->
+    <!-- TAB 3: MANUAL DATA INPUT & ZONE ARCHITECT -->
+    <!-- ========================================================================= -->
+    <main class="dashboard-main" id="tab-content-manual" style="display: none; grid-template-columns: 1fr; max-width: 1400px; padding: 20px; margin: 0 auto;">
+      <div id="manual-data-container"></div>
+    </main>
+
+    <!-- Column Mapping & Dataset Preview Modal Container -->
+    <div id="column-mapping-modal-container" style="display: none;"></div>
+
     <!-- Footer Status Bar -->
     <footer class="footer-bar">
       <div class="audit-stream">
@@ -422,7 +482,7 @@
           Emergency Evacuation Planning System
         </h2>
         <p style="color: var(--text-secondary); font-size: 13px;">
-          Student: <strong>Ameya</strong> | B.Tech CSE (AI-Driven DevOps) | JAIN (Deemed-to-be University)
+          B.Tech CSE (AI-Driven DevOps) | Academic Project Evaluation
         </p>
       </div>
 
@@ -505,6 +565,10 @@
   <script src="src/admin/HazardTrigger.js"></script>
   <script src="src/admin/ZoneEditor.js"></script>
   <script src="src/admin/ActivityLog.js"></script>
+
+  <!-- Manual Data & Column Mapping Modals -->
+  <script src="src/components/ManualDataInput.js"></script>
+  <script src="src/components/ColumnMappingPanel.js"></script>
 
   <!-- App Main Entry Point -->
   <script src="src/app.js"></script>

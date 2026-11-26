@@ -435,6 +435,42 @@
   cursor: pointer;
 }
 
+/* Manual Data Input & Dynamic Grid Styling */
+.manual-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .manual-grid-2col {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.input-num-sm {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-family: var(--font-mono);
+  box-sizing: border-box;
+}
+
+.input-num-sm:focus, .input-text-sm:focus {
+  border-color: #38bdf8;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+.input-text-sm {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  color: #e2e8f0;
+  box-sizing: border-box;
+}
+
 /* Printable Report */
 @media print {
   body {

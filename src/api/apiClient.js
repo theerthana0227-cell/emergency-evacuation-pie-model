@@ -152,7 +152,7 @@ class ApiClient {
     let optRoute = candidatePaths.find(p => !p.isIntuitive) || candidatePaths[0];
 
     // Calculate clearance times
-    const walkingSpeed = 1.2; // m/s
+    const walkingSpeed = this.localState.walkingSpeed || 1.2; // m/s
     const exitLoadRate = 18; // peds/s average exit flow
 
     const uxExit = this.localState.exits.find(e => e.id === uxRoute.exitId);
@@ -428,6 +428,186 @@ class ApiClient {
       this.localState.latestSimulation = sim;
     }
     return { success: true, data: { zoneId, current_occupancy } };
+  }
+
+  validateManualInputs(config) {
+    const errors = [];
+    const warnings = [];
+
+    // 1. Zone occupancies
+    if (config.zones) {
+      config.zones.forEach(z => {
+        if (isNaN(z.count) || Number(z.count) < 0) {
+          errors.push(`Invalid occupancy for ${z.name || z.id}: Must be a non-negative number.`);
+        }
+      });
+    }
+
+    // 2. Overlaps
+    if (config.overlaps && config.zones) {
+      const zoneMap = new Map(config.zones.map(z => [z.id, Number(z.count) || 0]));
+      config.overlaps.forEach(ov => {
+        const val = Number(ov.shared_occupancy);
+        if (isNaN(val) || val < 0) {
+          errors.push(`Invalid overlap for ${ov.name || 'Zone Overlap'}: Must be a non-negative number.`);
+          return;
+        }
+        if (ov.zone_ids) {
+          ov.zone_ids.forEach(zid => {
+            const zCount = zoneMap.get(zid) !== undefined ? zoneMap.get(zid) : 0;
+            if (val > zCount) {
+              errors.push(`Mathematical contradiction: Overlap "${ov.name}" (${val}) exceeds zone ${zid} occupancy (${zCount}).`);
+            }
+          });
+        }
+      });
+    }
+
+    // 3. Exits & Walking Speed
+    if (config.walkingSpeed !== undefined && (isNaN(config.walkingSpeed) || Number(config.walkingSpeed) <= 0)) {
+      errors.push("Walking speed must be a positive number (recommended: 1.0 - 1.5 m/s).");
+    }
+    if (config.exits) {
+      config.exits.forEach(ex => {
+        if (ex.capacity !== undefined && (isNaN(ex.capacity) || Number(ex.capacity) <= 0)) {
+          errors.push(`Exit ${ex.name || ex.id} capacity must be a positive number.`);
+        }
+        if (ex.width !== undefined && (isNaN(ex.width) || Number(ex.width) <= 0)) {
+          errors.push(`Exit ${ex.name || ex.id} width must be a positive number.`);
+        }
+      });
+    }
+
+    // Calculate PIE from manual inputs
+    const zones = config.zones || [];
+    const overlaps = config.overlaps || [];
+    const rawSum = zones.reduce((s, z) => s + (Number(z.count) || 0), 0);
+
+    const pairwise = overlaps.filter(ov => ov.zone_ids && ov.zone_ids.length === 2);
+    const triple = overlaps.filter(ov => ov.zone_ids && ov.zone_ids.length === 3);
+
+    const pairwiseSum = pairwise.reduce((s, ov) => s + (Number(ov.shared_occupancy) || 0), 0);
+    const tripleSum = triple.reduce((s, ov) => s + (Number(ov.shared_occupancy) || 0), 0);
+
+    const pieCorrected = rawSum - pairwiseSum + tripleSum;
+
+    if (pieCorrected < 0) {
+      errors.push(`Mathematical inconsistency: Calculated PIE population is negative (${pieCorrected}). Ensure higher-order intersections are properly accounted for.`);
+    }
+
+    let groundTruth = config.groundTruthUniqueCount !== undefined && config.groundTruthUniqueCount !== null && config.groundTruthUniqueCount !== ''
+      ? Number(config.groundTruthUniqueCount)
+      : null;
+
+    let absError = null;
+    let percentError = null;
+    let isValid = errors.length === 0;
+    let status = 'PASS';
+
+    if (groundTruth !== null) {
+      absError = Math.abs(pieCorrected - groundTruth);
+      percentError = groundTruth > 0 ? ((absError / groundTruth) * 100).toFixed(1) : '0.0';
+      if (absError !== 0) {
+        status = 'FAIL';
+      }
+    }
+
+    return {
+      isValid,
+      errors,
+      warnings,
+      rawSum,
+      pairwiseSum,
+      tripleSum,
+      pieCorrected,
+      groundTruth,
+      absError,
+      percentError,
+      status: isValid ? status : 'FAIL',
+      stepByStepFormula: `${zones.map(z => `|${z.name || z.id}|`).join(' + ')} − (${pairwise.map(o => `|${o.name}|`).join(' + ') || '0'}) + (${triple.map(o => `|${o.name}|`).join(' + ') || '0'}) = ${pieCorrected}`
+    };
+  }
+
+  applyManualModel(config) {
+    const val = this.validateManualInputs(config);
+    if (!val.isValid) {
+      throw new Error(val.errors.join(' '));
+    }
+
+    // Update zones
+    if (config.zones) {
+      config.zones.forEach(cz => {
+        let z = this.localState.zones.find(x => x.id === cz.id);
+        if (z) {
+          z.current_occupancy = Number(cz.count);
+          if (cz.capacity) z.capacity = Number(cz.capacity);
+          if (cz.name) z.name = cz.name;
+        } else {
+          // Custom added zone
+          this.localState.zones.push({
+            id: cz.id,
+            name: cz.name,
+            type: cz.type || 'room',
+            capacity: Number(cz.capacity) || 50,
+            current_occupancy: Number(cz.count) || 0,
+            risk_level: 'normal',
+            coords: cz.coords || { x: 300, y: 300, w: 200, h: 150 },
+            center: cz.center || { x: 400, y: 375 }
+          });
+        }
+      });
+    }
+
+    // Update overlaps
+    if (config.overlaps) {
+      this.localState.overlaps = config.overlaps.map(ov => ({
+        id: ov.id || 'ov_' + Math.random().toString(36).substr(2, 5),
+        zone_ids: ov.zone_ids,
+        name: ov.name || `${ov.zone_ids.join(' ∩ ')}`,
+        shared_occupancy: Number(ov.shared_occupancy) || 0,
+        description: ov.description || `Sensor overlap between ${ov.zone_ids.join(' and ')}`
+      }));
+    }
+
+    // Update exits
+    if (config.exits) {
+      config.exits.forEach(ce => {
+        let ex = this.localState.exits.find(e => e.id === ce.id);
+        if (ex) {
+          if (ce.capacity !== undefined) ex.max_flow_rate = Number(ce.capacity);
+          if (ce.width !== undefined) ex.width = Number(ce.width);
+        }
+      });
+    }
+
+    if (config.walkingSpeed) {
+      this.localState.walkingSpeed = Number(config.walkingSpeed);
+    }
+    if (config.thresholdPercent !== undefined) {
+      this.localState.thresholdPercent = Number(config.thresholdPercent);
+    }
+
+    const hazardZoneId = config.hazardZoneId || (this.localState.activeHazard ? this.localState.activeHazard.zoneId : 'zone_c');
+    const originZoneId = config.originZoneId || this.localState.activeOriginZoneId || 'zone_a';
+
+    this.localState.activeHazard = {
+      zoneId: hazardZoneId,
+      severity: 'critical',
+      triggeredAt: new Date().toLocaleTimeString()
+    };
+    this.localState.activeOriginZoneId = originZoneId;
+
+    const sim = this.calculateSimulation(hazardZoneId, originZoneId, this.localState.thresholdPercent);
+    this.localState.latestSimulation = sim;
+
+    this.localState.logs.unshift({
+      id: 'log_' + Date.now(),
+      timestamp: new Date().toLocaleTimeString(),
+      action: 'MANUAL_DATA_APPLIED',
+      details: `Manual data parameters applied. Raw Occupancy: ${val.rawSum}, PIE Corrected: ${val.pieCorrected}. Route: ${sim.routing.selectedStrategy.toUpperCase()}`
+    });
+
+    return { success: true, model: this.localState, validation: val };
   }
 
   async getLogs() {

@@ -41,35 +41,52 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // =========================================================================
-  // 2. TAB NAVIGATION
+  // 2. TAB NAVIGATION (BUILDING 3D, REAL DATA VALIDATION, MANUAL DATA INPUT)
   // =========================================================================
   const tabBtnBuilding = document.getElementById('tab-btn-building');
   const tabBtnRealData = document.getElementById('tab-btn-realdata');
+  const tabBtnManual = document.getElementById('tab-btn-manual');
   const tabContentBuilding = document.getElementById('tab-content-building');
   const tabContentRealData = document.getElementById('tab-content-realdata');
+  const tabContentManual = document.getElementById('tab-content-manual');
 
   let realDataInitialized = false;
 
-  tabBtnBuilding.addEventListener('click', () => {
-    tabBtnBuilding.classList.add('active');
-    tabBtnRealData.classList.remove('active');
-    tabContentBuilding.style.display = 'grid';
-    tabContentRealData.style.display = 'none';
-    if (building3DView) building3DView.onWindowResize();
-  });
+  async function switchTab(tabId) {
+    [tabBtnBuilding, tabBtnRealData, tabBtnManual].forEach(b => b?.classList.remove('active'));
+    if (tabContentBuilding) tabContentBuilding.style.display = 'none';
+    if (tabContentRealData) tabContentRealData.style.display = 'none';
+    if (tabContentManual) tabContentManual.style.display = 'none';
 
-  tabBtnRealData.addEventListener('click', async () => {
-    tabBtnRealData.classList.add('active');
-    tabBtnBuilding.classList.remove('active');
-    tabContentBuilding.style.display = 'none';
-    tabContentRealData.style.display = 'grid';
-    if (!realDataInitialized) {
-      realDataInitialized = true;
-      await initRealDataTab();
-    } else if (realData3DView) {
-      realData3DView.onWindowResize();
+    if (tabId === 'building') {
+      tabBtnBuilding?.classList.add('active');
+      if (tabContentBuilding) tabContentBuilding.style.display = 'grid';
+      if (building3DView) building3DView.onWindowResize();
+    } else if (tabId === 'realdata') {
+      tabBtnRealData?.classList.add('active');
+      if (tabContentRealData) tabContentRealData.style.display = 'grid';
+      if (!realDataInitialized) {
+        realDataInitialized = true;
+        await initRealDataTab();
+      } else if (realData3DView) {
+        realData3DView.onWindowResize();
+      }
+    } else if (tabId === 'manual') {
+      tabBtnManual?.classList.add('active');
+      if (tabContentManual) tabContentManual.style.display = 'grid';
+      if (manualDataInput) manualDataInput.render();
     }
-  });
+  }
+
+  tabBtnBuilding?.addEventListener('click', () => switchTab('building'));
+  tabBtnRealData?.addEventListener('click', () => switchTab('realdata'));
+  tabBtnManual?.addEventListener('click', () => switchTab('manual'));
+
+  const btnQuickManual = document.getElementById('btn-quick-manual-entry');
+  if (btnQuickManual) btnQuickManual.addEventListener('click', () => switchTab('manual'));
+
+  const btnTab2Manual = document.getElementById('btn-tab2-manual-entry');
+  if (btnTab2Manual) btnTab2Manual.addEventListener('click', () => switchTab('manual'));
 
   // =========================================================================
   // 3. TAB 1: 3D & 2D BUILDING EVACUATION COMPONENTS
@@ -309,11 +326,62 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // =========================================================================
-  // 4. TAB 2: REAL DATA VALIDATION (FORSCHUNGSZENTRUM JÜLICH)
+  // 4. TAB 3: MANUAL DATA INPUT & ZONE ARCHITECT COMPONENT
+  // =========================================================================
+  const manualDataInput = new ManualDataInput('manual-data-container', {
+    onApply: async (config) => {
+      try {
+        const res = apiClient.applyManualModel(config);
+        await refreshState();
+        alert(`✓ Manual facility parameters applied successfully!\n• Raw Occupancy: ${res.validation.rawSum}\n• PIE Population: ${res.validation.pieCorrected}\n• Status: ${res.validation.status}`);
+      } catch (err) {
+        alert('Validation error: ' + err.message);
+      }
+    },
+    onRunSimulation: async (config) => {
+      try {
+        apiClient.applyManualModel(config);
+        await refreshState();
+        await switchTab('building');
+        building3DView.startEvacuation();
+      } catch (err) {
+        alert('Validation error: ' + err.message);
+      }
+    },
+    onReset: async () => {
+      activeScenarioId = 'scenario_corridor_smoke';
+      await apiClient.loadScenario(activeScenarioId);
+      await refreshState();
+    }
+  });
+
+  // =========================================================================
+  // 5. TAB 2: REAL DATA VALIDATION (FORSCHUNGSZENTRUM JÜLICH) & SCHEMA MAPPER
   // =========================================================================
   let datasetParser = new PedestrianDatasetParser();
   let currentDataset = null;
   let latestStats = null;
+  let cachedRawDatasetText = null;
+  let cachedDatasetFilename = null;
+
+  const columnMappingPanel = new ColumnMappingPanel('column-mapping-modal-container', {
+    onConfirm: async (rawContent, filename, customOptions) => {
+      try {
+        const statusBadge = document.getElementById('playback-status-badge');
+        if (statusBadge) {
+          statusBadge.textContent = 'Parsing...';
+          statusBadge.className = 'badge-tag badge-purple';
+        }
+
+        const parsed = datasetParser.parseText(rawContent, filename, customOptions);
+        cachedRawDatasetText = rawContent;
+        cachedDatasetFilename = filename;
+        applyLoadedDataset(parsed);
+      } catch (err) {
+        alert('Failed to parse dataset with selected column mapping: ' + err.message);
+      }
+    }
+  });
 
   const realData3DView = new RealData3DView('real-data-3d-container', {
     onFrameChange: (frameIndex, frameNumber) => {
@@ -346,66 +414,113 @@ document.addEventListener('DOMContentLoaded', async () => {
   const realPiePanel = new RealDataPiePanel('real-pie-container');
   const exitFlowAnalytics = new ExitFlowAnalytics('exit-flow-container');
 
+  function applyLoadedDataset(parsed) {
+    currentDataset = parsed;
+
+    // Update metadata card
+    const metaPeds = document.getElementById('meta-peds-count');
+    if (metaPeds) metaPeds.textContent = parsed.uniquePedestriansCount;
+
+    const lblTotal = document.getElementById('lbl-total-frames');
+    if (lblTotal) lblTotal.textContent = `/ ${parsed.frames.length}`;
+
+    const slider = document.getElementById('real-timeline-slider');
+    if (slider) {
+      slider.min = 0;
+      slider.max = parsed.frames.length - 1;
+      slider.value = 0;
+    }
+
+    // Load into 3D viewer & analytics
+    realData3DView.loadDataset(parsed);
+    realPiePanel.render(null);
+    exitFlowAnalytics.render(parsed, null);
+
+    const statusBadge = document.getElementById('playback-status-badge');
+    if (statusBadge) {
+      statusBadge.textContent = 'Ready';
+      statusBadge.className = 'badge-tag badge-cyan';
+    }
+
+    console.log('Dataset loaded successfully:', parsed.filename, parsed.uniquePedestriansCount, 'peds');
+  }
+
   // Load and parse a trajectory URL or File
   async function loadTrajectorySource(urlOrFile, isFile = false) {
     try {
       const statusBadge = document.getElementById('playback-status-badge');
       if (statusBadge) {
-        statusBadge.textContent = 'Parsing...';
+        statusBadge.textContent = 'Loading...';
         statusBadge.className = 'badge-tag badge-purple';
       }
 
-      let parsed = null;
+      let textContent = '';
+      let filename = 'dataset.txt';
+
       if (isFile) {
-        parsed = await datasetParser.parseFile(urlOrFile);
+        filename = urlOrFile.name;
+        if (filename.toLowerCase().endsWith('.zip')) {
+          if (typeof JSZip === 'undefined') throw new Error('JSZip library required for ZIP files.');
+          const zip = await JSZip.loadAsync(urlOrFile);
+          let targetFile = null;
+          for (const [fn, fObj] of Object.entries(zip.files)) {
+            const lower = fn.toLowerCase();
+            if (!fObj.dir && (lower.endsWith('.txt') || lower.endsWith('.csv') || lower.endsWith('.json'))) {
+              targetFile = fObj;
+              filename = fn;
+              break;
+            }
+          }
+          if (!targetFile) throw new Error('ZIP archive contains no .txt, .csv, or .json files.');
+          textContent = await targetFile.async('string');
+        } else {
+          textContent = await urlOrFile.text();
+        }
       } else {
         const res = await fetch(urlOrFile);
         if (!res.ok) throw new Error(`HTTP Error ${res.status}: Failed to fetch ${urlOrFile}`);
-        const text = await res.text();
-        const filename = urlOrFile.split('/').pop();
-        parsed = datasetParser.parseText(text, filename);
+        textContent = await res.text();
+        filename = urlOrFile.split('/').pop();
       }
 
-      currentDataset = parsed;
+      cachedRawDatasetText = textContent;
+      cachedDatasetFilename = filename;
 
-      // Update metadata card
-      const metaPeds = document.getElementById('meta-peds-count');
-      if (metaPeds) metaPeds.textContent = parsed.uniquePedestriansCount;
+      // Inspect schema structure
+      const structure = datasetParser.inspectStructure(textContent, filename);
 
-      const lblTotal = document.getElementById('lbl-total-frames');
-      if (lblTotal) lblTotal.textContent = `/ ${parsed.frames.length}`;
-
-      const slider = document.getElementById('real-timeline-slider');
-      if (slider) {
-        slider.min = 0;
-        slider.max = parsed.frames.length - 1;
-        slider.value = 0;
+      // If uploaded custom file, open Column Mapping interface to allow user to inspect & map columns
+      if (isFile) {
+        columnMappingPanel.show(structure, textContent);
+      } else {
+        // Pre-bundled research dataset: auto-load with detected column mapping
+        const parsed = datasetParser.parseText(textContent, filename, {
+          mapping: structure.suggestedMapping
+        });
+        applyLoadedDataset(parsed);
       }
-
-      // Load into 3D viewer & analytics
-      realData3DView.loadDataset(parsed);
-      realPiePanel.render(null);
-      exitFlowAnalytics.render(parsed, null);
-
-      if (statusBadge) {
-        statusBadge.textContent = 'Ready';
-        statusBadge.className = 'badge-tag badge-cyan';
-      }
-
-      console.log('Jülich dataset loaded successfully:', parsed.filename, parsed.uniquePedestriansCount, 'peds');
     } catch (err) {
       console.error('Dataset load error:', err);
-      alert('Error parsing dataset: ' + err.message);
+      alert('Error loading dataset: ' + err.message);
     }
   }
 
   // Initialize Real Data Tab
   async function initRealDataTab() {
     realData3DView.onWindowResize();
-    // Default load first dataset: ao-240-400.txt
     const selectDataset = document.getElementById('select-juelich-dataset');
     const initialUrl = selectDataset ? selectDataset.value : 'data/ao-240-400.txt';
     await loadTrajectorySource(initialUrl, false);
+  }
+
+  // Pre-bundled 1-Click Load Button
+  const btnLoadOriginal = document.getElementById('btn-load-original-dataset');
+  if (btnLoadOriginal) {
+    btnLoadOriginal.addEventListener('click', async () => {
+      const selectDataset = document.getElementById('select-juelich-dataset');
+      const url = selectDataset ? selectDataset.value : 'data/ao-240-400.txt';
+      await loadTrajectorySource(url, false);
+    });
   }
 
   // Pre-bundled selector change
@@ -416,7 +531,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Custom File Uploader
+  // Custom File Uploader (CSV, TXT, JSON, ZIP)
   const btnBrowse = document.getElementById('btn-browse-dataset');
   const inputDataset = document.getElementById('input-custom-dataset');
 
@@ -429,9 +544,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // Open Schema & Column Mapping Dialog
+  const btnOpenMapping = document.getElementById('btn-open-schema-mapping');
+  if (btnOpenMapping) {
+    btnOpenMapping.addEventListener('click', () => {
+      if (!cachedRawDatasetText) {
+        alert('Please load or upload a dataset first.');
+        return;
+      }
+      const structure = datasetParser.inspectStructure(cachedRawDatasetText, cachedDatasetFilename || 'dataset.txt');
+      columnMappingPanel.show(structure, cachedRawDatasetText);
+    });
+  }
+
   // Playback Controls
   const btnRealPlay = document.getElementById('btn-real-play');
   const btnRealPause = document.getElementById('btn-real-pause');
+  const btnRealResume = document.getElementById('btn-real-resume');
   const btnRealReset = document.getElementById('btn-real-reset');
   const selectRealSpeed = document.getElementById('select-real-speed');
   const timelineSlider = document.getElementById('real-timeline-slider');
@@ -458,9 +587,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  if (btnRealResume) {
+    btnRealResume.addEventListener('click', () => {
+      realData3DView.play();
+      const statusBadge = document.getElementById('playback-status-badge');
+      if (statusBadge) {
+        statusBadge.textContent = 'Playing';
+        statusBadge.className = 'badge-tag badge-emerald';
+      }
+    });
+  }
+
   if (btnRealReset) {
     btnRealReset.addEventListener('click', () => {
       realData3DView.pause();
+      realData3DView.seek(0);
+      const statusBadge = document.getElementById('playback-status-badge');
+      if (statusBadge) {
+        statusBadge.textContent = 'Ready';
+        statusBadge.className = 'badge-tag badge-cyan';
+      }
+    });
+  }
       realData3DView.seek(0);
       const statusBadge = document.getElementById('playback-status-badge');
       if (statusBadge) {

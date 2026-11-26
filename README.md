@@ -168,7 +168,7 @@ The included `vercel.json` and static fallback engine guarantee that the applica
 
 ---
 
-## 👥 Authors & Academic Context
-- **Student**: Ameya | B.Tech CSE (AI-Driven DevOps)
+## 👥 Academic Context
+- **Program**: B.Tech CSE (AI-Driven DevOps)
 - **Institution**: JAIN (Deemed-to-be University)
 - **Course**: Experiential Learning Project
